@@ -2,12 +2,12 @@
   "name": "mqtt-avanza",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "mqtt-avanza.js",
   "scripts": {
     "git-pull": "git pull",
     "git-commit": "git add -A && git commit -m '-' && git push",
     "git-revert": "git reset --hard HEAD"
-	},
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/meg768/mqtt-avanza.git"
@@ -20,6 +20,9 @@
   "homepage": "https://github.com/meg768/mqtt-avanza#readme",
   "dependencies": {
     "avanza": "^3.0.0",
-    "dotenv": "^16.0.1"
+    "dotenv": "^16.0.1",
+    "mqtt": "^4.3.7",
+    "yargs": "^17.5.1",
+    "yow": "^1.0.115"
   }
 }
