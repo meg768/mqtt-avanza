@@ -57,7 +57,11 @@ class App {
 		let positions = await this.avanza.getOverview();
 		let accounts = positions.accounts;
 
+		this.mqtt.publish(`${this.argv.topic}`, JSON.stringify(positions), {retain:false});
+
 		for (let account of accounts) {
+			let overview = await this.avanza.getAccountOverview(account.accountId);
+
 			let summary = {};
 
 			summary.name = account.name;
@@ -68,15 +72,40 @@ class App {
 			summary.total.performance = round(account.totalProfitPercent, 1);
 			summary.total.profit = round(account.totalProfit, -1);
 
-			summary.ytd = {};
-			summary.ytd.performance = round(account.performancePercent, 1);
-			summary.ytd.profit = round(account.performance, -1);
-		
+			summary['ytd'] = {
+				performance:round(account.performancePercent, 1),
+				profit:round(account.performance, -1)
+			};
+			summary['1w'] = {
+				performance: round(overview.performanceSinceOneWeekPercent, 1),
+				profit:round(overview.performanceSinceOneWeek)
+			}
+			summary['1m'] = {
+				performance: round(overview.performanceSinceOneMonthPercent, 1),
+				profit:round(overview.performanceSinceOneMonth)
+			}
+			summary['3m'] = {
+				performance: round(overview.performanceSinceThreeMonthsPercent, 1),
+				profit:round(overview.performanceSinceThreeMonths)
+			}
+			summary['6m'] = {
+				performance: round(overview.performanceSinceSixMonthsPercent, 1),
+				profit:round(overview.performanceSinceSixMonths)
+			}
+			summary['1y'] = {
+				performance: round(overview.performanceSinceOneYearPercent, 1),
+				profit:round(overview.performanceSinceOneYear)
+			}
+			summary['3y'] = {
+				performance: round(overview.performanceSinceThreeYearsPercent, 1),
+				profit:round(overview.performanceSinceThreeYears)
+			}
+			
 			if (this.cache[summary.name] == undefined || this.cache[summary.name] != JSON.stringify(summary)) {
 				this.cache[summary.name] = JSON.stringify(summary);
 				this.mqtt.publish(`${this.argv.topic}/${summary.name}`, JSON.stringify(summary), {retain:true});
-				this.debug(account);
-				this.debug(summary);
+				this.mqtt.publish(`${this.argv.topic}/${summary.name}/account`, JSON.stringify(account), {retain:false});
+				this.mqtt.publish(`${this.argv.topic}/${summary.name}/overview`, JSON.stringify(overview), {retain:false});
 			}
 		}
 
