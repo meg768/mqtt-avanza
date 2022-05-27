@@ -57,7 +57,6 @@ class App {
 		let positions = await this.avanza.getOverview();
 		let accounts = positions.accounts;
 
-		this.mqtt.publish(`${this.argv.topic}`, JSON.stringify(positions), {retain:false});
 
 		for (let account of accounts) {
 			let overview = await this.avanza.getAccountOverview(account.accountId);
@@ -103,7 +102,7 @@ class App {
 			
 			if (this.cache[summary.name] == undefined || this.cache[summary.name] != JSON.stringify(summary)) {
 				this.cache[summary.name] = JSON.stringify(summary);
-				this.mqtt.publish(`${this.argv.topic}/${summary.name}`, JSON.stringify(summary), {retain:true});
+				this.mqtt.publish(`${this.argv.topic}/${summary.name}`, JSON.stringify(summary), {retain:false});
 				this.mqtt.publish(`${this.argv.topic}/${summary.name}/debug/account`, JSON.stringify(account), {retain:false});
 				this.mqtt.publish(`${this.argv.topic}/${summary.name}/debug/overview`, JSON.stringify(overview), {retain:false});
 			}
