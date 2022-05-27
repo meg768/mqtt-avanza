@@ -13,7 +13,7 @@ class App {
 		yargs.option('help',     {alias:'h', describe:'Displays this information'});
 		yargs.option('debug',    {describe:'Debug mode', type:'boolean', default:this.config.debug || false});
 		yargs.option('interval', {describe:'Poll interval in minutes', type:'number', default:this.config.interval || 1});
-		yargs.option('topic', {describe:'MQTT topic', type:'number', default:this.config.topic || "Avanza"});
+		yargs.option('topic',    {describe:'MQTT topic', type:'number', default:this.config.topic || "Avanza"});
 
 		yargs.help();
 		yargs.wrap(null);
