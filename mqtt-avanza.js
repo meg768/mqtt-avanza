@@ -54,8 +54,12 @@ class App {
 	async loop() {
 		const round = require('yow/round');
 
-		let positions = await this.avanza.getOverview();
-		let accounts = positions.accounts;
+		let totalOverview = await this.avanza.getOverview();
+		let accounts = totalOverview.accounts;
+
+		if (this.argv.debug) {
+			this.mqtt.publish(`${this.argv.topic}`, JSON.stringify(totalOverview), {retain:false});
+		}
 
 
 		for (let account of accounts) {
@@ -103,8 +107,10 @@ class App {
 			if (this.cache[summary.name] == undefined || this.cache[summary.name] != JSON.stringify(summary)) {
 				this.cache[summary.name] = JSON.stringify(summary);
 				this.mqtt.publish(`${this.argv.topic}/${summary.name}`, JSON.stringify(summary), {retain:false});
-				this.mqtt.publish(`${this.argv.topic}/${summary.name}/debug/account`, JSON.stringify(account), {retain:false});
-				this.mqtt.publish(`${this.argv.topic}/${summary.name}/debug/overview`, JSON.stringify(overview), {retain:false});
+				if (this.argv.debug) {
+					this.mqtt.publish(`${this.argv.topic}/${summary.name}/debug/account`, JSON.stringify(account), {retain:false});
+					this.mqtt.publish(`${this.argv.topic}/${summary.name}/debug/overview`, JSON.stringify(overview), {retain:false});	
+				}
 			}
 		}
 
