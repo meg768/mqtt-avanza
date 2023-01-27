@@ -115,7 +115,9 @@ class App {
         json.positions = await this.getPositions();
         json.watchLists = await this.getWatchlists();
         
-        this.mqtt.publish(`${this.argv.topic}`, JSON.stringify(json), {retain:true});
+        this.mqtt.publish(`${this.argv.topic}/Overview`, JSON.stringify(json.overview), {retain:true});
+        this.mqtt.publish(`${this.argv.topic}/Positions`, JSON.stringify(json.positions), {retain:true});
+        this.mqtt.publish(`${this.argv.topic}/Watch`, JSON.stringify(json.watchLists), {retain:true});
 
 		setTimeout(this.loop.bind(this), this.argv.interval * 1000);
 	}
