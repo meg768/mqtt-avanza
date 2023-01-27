@@ -12,7 +12,7 @@ class App {
 		yargs.usage('Usage: $0 [options]')
 		yargs.option('help',     {alias:'h', describe:'Displays this information'});
 		yargs.option('debug',    {describe:'Debug mode', type:'boolean', default:this.config.debug || false});
-		yargs.option('interval', {describe:'Poll interval in minutes', type:'number', default:this.config.interval || 1});
+		yargs.option('interval', {describe:'Poll interval in minutes', type:'number', default:this.config.interval || 60});
 		yargs.option('topic',    {describe:'MQTT topic', type:'number', default:this.config.topic || "Avanza"});
 
 		yargs.help();
@@ -52,7 +52,6 @@ class App {
 	}
 
 	async getPositions() {
-        this.debug(`Fetching positions...`);
 
 		let positions = await this.avanza.getPositions();
 
@@ -63,7 +62,6 @@ class App {
 
 	async getOverview() {
 
-        this.debug(`Fetching overview...`);
 		let overview = await this.avanza.getOverview();
 
 		
@@ -78,35 +76,10 @@ class App {
 	}
 
 	async getWatchlists() {
-        this.debug(`Fetching watchlists...`);
 		let watchLists = await this.avanza.getWatchlists();
 		return watchLists;
 
 	}
-
-	async runx() {
-		try {
-			await this.connect();
-			await this.login();
-	
-			let json = {};
-			json.overview = await this.getOverview();
-			json.positions = await this.getPositions();
-			json.watchLists = await this.getWatchlists();
-
-			this.mqtt.publish(`debug/avanza`, JSON.stringify(json), {retain:true});
-
-
-		
-		}
-		catch(error) {
-			this.log(error.stack);
-			process.exit(-1);
-
-		}
-
-	}
-
 
 
 	async loop() {
@@ -114,12 +87,14 @@ class App {
         json.overview = await this.getOverview();
         json.positions = await this.getPositions();
         json.watchLists = await this.getWatchlists();
-        
+
+        this.debug(`Fetching from Avanza...`);
+
         this.mqtt.publish(`${this.argv.topic}/Overview`, JSON.stringify(json.overview), {retain:true});
         this.mqtt.publish(`${this.argv.topic}/Positions`, JSON.stringify(json.positions), {retain:true});
         this.mqtt.publish(`${this.argv.topic}/Watch`, JSON.stringify(json.watchLists), {retain:true});
 
-		setTimeout(this.loop.bind(this), this.argv.interval * 1000);
+		setTimeout(this.loop.bind(this), this.argv.interval * 1000 * 60);
 	}
 
 	async run() {
