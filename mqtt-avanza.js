@@ -51,107 +51,79 @@ class App {
 		});
 	}
 
-	async publishPositions() {
-		const round = require('yow/round');
+	async getPositions() {
+        this.debug(`Fetching positions...`);
+
 		let positions = await this.avanza.getPositions();
 
-		for (let instrument of positions.instrumentPositions) {
-			for (let position of instrument.positions) {
-
-				if (this.argv.debug) {
-					this.mqtt.publish(`debug/${position.accountName}/positions/${position.name}`, JSON.stringify(position), {retain:false});
-				}
-		
-				let summary = {};
-				summary.name = position.name;
-				summary.change = round(position.changePercent, 2);
-				summary.value = round(position.value, 0);
-				summary.profit = round(position.profit, 0);
-				summary.performance = round(position.profitPercent, 2);
-				this.mqtt.publish(`${this.argv.topic}/${position.accountName}/${position.name}`, JSON.stringify(summary), {retain:false});
-
-			}
-		}
-
+	
+		return positions;
 	}
 
 
-	async publishAccounts() {
-		const round = require('yow/round');
+	async getOverview() {
 
+        this.debug(`Fetching overview...`);
 		let overview = await this.avanza.getOverview();
 
-		if (this.argv.debug) {
-			this.mqtt.publish(`debug/overview`, JSON.stringify(overview), {retain:false});
-		}
-
+		
 		for (let account of overview.accounts) {
-			let accountOverview = await this.avanza.getAccountOverview(account.accountId);
 
-			if (this.argv.debug) {
-				this.mqtt.publish(`debug/${account.name}/account`, JSON.stringify(account), {retain:false});
-				this.mqtt.publish(`debug/${account.name}/account/overview`, JSON.stringify(accountOverview), {retain:false});	
-			}
-	
-			let summary = {};
-			summary.name = account.name;
-			summary.type = account.accountType;
-			summary.capital = round(account.ownCapital, -1);
-
-			summary.total = {};
-			summary.total.performance = round(account.totalProfitPercent, 1);
-			summary.total.profit = round(account.totalProfit, -1);
-
-			summary['ytd'] = {
-				performance:round(account.performancePercent, 1),
-				profit:round(account.performance, -1)
-			};
-			summary['1w'] = {
-				performance: round(accountOverview.performanceSinceOneWeekPercent, 1),
-				profit:round(accountOverview.performanceSinceOneWeek)
-			}
-			summary['1m'] = {
-				performance: round(accountOverview.performanceSinceOneMonthPercent, 1),
-				profit:round(accountOverview.performanceSinceOneMonth)
-			}
-			summary['3m'] = {
-				performance: round(accountOverview.performanceSinceThreeMonthsPercent, 1),
-				profit:round(accountOverview.performanceSinceThreeMonths)
-			}
-			summary['6m'] = {
-				performance: round(accountOverview.performanceSinceSixMonthsPercent, 1),
-				profit:round(accountOverview.performanceSinceSixMonths)
-			}
-			summary['1y'] = {
-				performance: round(accountOverview.performanceSinceOneYearPercent, 1),
-				profit:round(accountOverview.performanceSinceOneYear)
-			}
-			summary['3y'] = {
-				performance: round(accountOverview.performanceSinceThreeYearsPercent, 1),
-				profit:round(accountOverview.performanceSinceThreeYears)
-			}
-			
-			if (this.cache[summary.name] == undefined || this.cache[summary.name] != JSON.stringify(summary)) {
-				this.cache[summary.name] = JSON.stringify(summary);
-				this.mqtt.publish(`${this.argv.topic}/${summary.name}`, JSON.stringify({date:new Date(), ...summary}), {retain:true});
-			}
+			account.overview = await this.avanza.getAccountOverview(account.accountId);
 		}
+
+		return overview;
 
 
 	}
 
-	async loop() {
-		await this.publishAccounts();
-		await this.publishPositions();
+	async getWatchlists() {
+        this.debug(`Fetching watchlists...`);
+		let watchLists = await this.avanza.getWatchlists();
+		return watchLists;
 
-		setTimeout(this.loop.bind(this), this.argv.interval * 1000 * 60);
+	}
+
+	async runx() {
+		try {
+			await this.connect();
+			await this.login();
+	
+			let json = {};
+			json.overview = await this.getOverview();
+			json.positions = await this.getPositions();
+			json.watchLists = await this.getWatchlists();
+
+			this.mqtt.publish(`debug/avanza`, JSON.stringify(json), {retain:true});
+
+
+		
+		}
+		catch(error) {
+			this.log(error.stack);
+			process.exit(-1);
+
+		}
+
+	}
+
+
+
+	async loop() {
+        let json = {};
+        json.overview = await this.getOverview();
+        json.positions = await this.getPositions();
+        json.watchLists = await this.getWatchlists();
+        
+        this.mqtt.publish(`${this.argv.topic}`, JSON.stringify(json), {retain:true});
+
+		setTimeout(this.loop.bind(this), this.argv.interval * 1000);
 	}
 
 	async run() {
 		try {
 			await this.connect();
 			await this.login();
-	
 			await this.loop();
 	
 		}
@@ -162,6 +134,8 @@ class App {
 		}
 
 	}
+
+
 }
 
 const app = new App();
