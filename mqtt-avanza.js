@@ -90,9 +90,9 @@ class App {
 
         this.debug(`Fetching from Avanza...`);
 
-        this.mqtt.publish(`${this.argv.topic}/Overview`, JSON.stringify(json.overview), {retain:true});
-        this.mqtt.publish(`${this.argv.topic}/Positions`, JSON.stringify(json.positions), {retain:true});
-        this.mqtt.publish(`${this.argv.topic}/Watch`, JSON.stringify(json.watchLists), {retain:true});
+//        this.mqtt.publish(`${this.argv.topic}/Overview`, JSON.stringify(json.overview), {retain:true});
+//        this.mqtt.publish(`${this.argv.topic}/Positions`, JSON.stringify(json.positions), {retain:true});
+//        this.mqtt.publish(`${this.argv.topic}/Watch`, JSON.stringify(json.watchLists), {retain:true});
         this.mqtt.publish(`${this.argv.topic}`, JSON.stringify(json), {retain:true});
 
 		setTimeout(this.loop.bind(this), this.argv.interval * 1000 * 60);
