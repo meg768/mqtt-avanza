@@ -11,7 +11,7 @@ class App {
 		const yargs = require('yargs');
 		yargs.usage('Usage: $0 [options]')
 		yargs.option('help',     {alias:'h', describe:'Displays this information'});
-		yargs.option('debug',    {describe:'Debug mode', type:'boolean', default:this.config.debug || false});
+		yargs.option('debug',    {describe:'Debug mode', type:'boolean', default:this.config.debug || true});
 		yargs.option('interval', {describe:'Poll interval in minutes', type:'number', default:this.config.interval || 60});
 		yargs.option('topic',    {describe:'MQTT topic', type:'number', default:this.config.topic || "Avanza"});
 
@@ -81,20 +81,94 @@ class App {
 
 	}
 
+    publish(topic, value) {
 
+        if (typeof(value) != 'string')
+            value = JSON.stringify(value)
+        
+        if (this.cache[value] == undefined)
+            this.mqtt.publish(`${this.argv.topic}/${topic}`, value, {retain:true});
+        
+        this.cache[value] = value;
+    }
+
+
+    async publishPositions() {
+
+        let positions = await this.avanza.getPositions();
+
+        for (let instrumentPosition of positions.instrumentPositions) {
+
+            for (let position of instrumentPosition.positions) {
+
+                let topic = 'Unknown';
+                let value = {};
+                value.name = position.name;
+                value.type = instrumentPosition.instrumentType.toLowerCase()
+                value.change = position.changePercent;
+                value.date = position.lastPriceUpdated;
+                value.price = position.lastPrice;
+
+                switch(value.type) {
+                    case 'stock': {
+                        topic = 'Stocks'
+                        break;
+                    }
+                    case 'fund': {
+                        topic = 'Funds'
+                        break;
+                    }
+                }
+
+                this.publish(`Positions/${topic}/${position.name}`, value)
+            }
+            
+
+        };                
+    }
+    
+
+    async publishWatchlists() {
+
+        let watchlists = await this.avanza.getWatchlists();
+
+        for (let watchlist of watchlists) {
+
+            let orderbooks = await this.avanza.getOrderbooks(watchlist.orderbooks);
+            
+            for (let orderbook of orderbooks) {
+
+                let value = {};
+                value.name = orderbook.name;
+                value.type = orderbook.instrumentType.toLowerCase();
+                value.date = orderbook.updated;
+
+                switch(orderbook.instrumentType) {
+                    case 'FUND': {
+                        value.change = orderbook.changePercentPeriod;
+                        break;
+                    }
+                    case 'STOCK': {
+                        value.change = orderbook.changePercent;
+                        break;
+                    }
+                    case 'INDEX': {
+                        value.change = orderbook.changePercent;
+                        break;
+                    }
+                }
+
+                this.publish(`Watch/${watchlist.name}/${orderbook.name}`, value);
+            };
+
+        };                
+    }
+    
 	async loop() {
-        let json = {};
-        json.overview = await this.getOverview();
-        json.positions = await this.getPositions();
-        json.watchLists = await this.getWatchlists();
 
-        this.debug(`Fetching from Avanza...`);
-
-//        this.mqtt.publish(`${this.argv.topic}/Overview`, JSON.stringify(json.overview), {retain:true});
-//        this.mqtt.publish(`${this.argv.topic}/Positions`, JSON.stringify(json.positions), {retain:true});
-//        this.mqtt.publish(`${this.argv.topic}/Watch`, JSON.stringify(json.watchLists), {retain:true});
-        this.mqtt.publish(`${this.argv.topic}`, JSON.stringify(json), {retain:true});
-
+        await this.publishWatchlists();
+        await this.publishPositions();
+        
 		setTimeout(this.loop.bind(this), this.argv.interval * 1000 * 60);
 	}
 
