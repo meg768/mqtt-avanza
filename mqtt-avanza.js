@@ -101,7 +101,6 @@ class App {
 
             for (let position of instrumentPosition.positions) {
 
-                let topic = 'Unknown';
                 let value = {};
                 value.name = position.name;
                 value.type = instrumentPosition.instrumentType.toLowerCase()
@@ -111,16 +110,14 @@ class App {
 
                 switch(value.type) {
                     case 'stock': {
-                        topic = 'Stocks'
                         break;
                     }
                     case 'fund': {
-                        topic = 'Funds'
                         break;
                     }
                 }
 
-                this.publish(`Positions/${topic}/${position.name}`, value)
+                this.publish(`Positions/${position.name}`, value)
             }
             
 
